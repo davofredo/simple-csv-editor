@@ -6,7 +6,7 @@
 
     <groupId>com.davofredo</groupId>
     <artifactId>SimpleCsvEditor</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0-Alpha</version>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>

@@ -17,6 +17,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 public class DatabaseService {
@@ -221,6 +222,102 @@ public class DatabaseService {
 
     private Connection getConnection() throws SQLException {
         return cp.getConnection();
+    }
+
+    public interface CloseableIterator<E> extends Iterator<E>, AutoCloseable {
+        @Override
+        void close();
+    }
+
+    public CloseableIterator<String[]> streamAllData(String tableName) {
+        String sanitizedTable = sanitizeName(tableName);
+        String sql = "SELECT * FROM " + sanitizedTable; // Iterate full table
+
+        try {
+            Connection conn = getConnection();
+            Statement stmt = conn.createStatement(); // Create statement
+            // Set fetch size to avoid loading all into memory if driver supports it (H2
+            // usually does reasonably well)
+            // But strict streaming might need specific H2 config.
+            // Default H2 behavior with simple query is usually okay for forward-only RS.
+            ResultSet rs = stmt.executeQuery(sql);
+            ResultSetMetaData meta = rs.getMetaData();
+            int colCount = meta.getColumnCount();
+
+            return new CloseableIterator<String[]>() {
+                // Must advance next manually to know if 'next' exists for Iterator contract
+                Boolean hasNext = null;
+
+                @Override
+                public boolean hasNext() {
+                    if (hasNext == null) {
+                        try {
+                            hasNext = rs.next();
+                        } catch (SQLException e) {
+                            e.printStackTrace();
+                            hasNext = false;
+                            close();
+                        }
+                    }
+                    return hasNext;
+                }
+
+                @Override
+                public String[] next() {
+                    if (hasNext == null)
+                        hasNext(); // Ensure state
+                    if (!hasNext) {
+                        throw new java.util.NoSuchElementException();
+                    }
+
+                    try {
+                        String[] row = new String[colCount - 1];
+                        // Skip ID (col 1), so start at 2
+                        for (int i = 2; i <= colCount; i++) {
+                            row[i - 2] = rs.getString(i);
+                        }
+                        hasNext = null; // Reset for next checking
+                        return row;
+                    } catch (SQLException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+
+                @Override
+                public void close() {
+                    try {
+                        rs.close();
+                    } catch (SQLException e) {
+                    }
+                    try {
+                        stmt.close();
+                    } catch (SQLException e) {
+                    }
+                    try {
+                        conn.close();
+                    } catch (SQLException e) {
+                    }
+                }
+            };
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return new CloseableIterator<String[]>() {
+                @Override
+                public boolean hasNext() {
+                    return false;
+                }
+
+                @Override
+                public String[] next() {
+                    throw new java.util.NoSuchElementException();
+                }
+
+                @Override
+                public void close() {
+                }
+            };
+        }
     }
 
     private String sanitizeName(String input) {

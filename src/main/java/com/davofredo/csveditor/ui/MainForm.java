@@ -13,6 +13,7 @@ import com.davofredo.event.EventGatewayImpl;
 import com.davofredo.csveditor.ui.sheet.SheetView;
 import com.davofredo.csveditor.ui.toolbar.MainToolBar;
 import com.davofredo.csveditor.ui.toolbar.event.OpenFileButtonListener;
+import com.davofredo.csveditor.ui.toolbar.event.RedoButtonListener;
 import com.davofredo.ui.dialog.ProgressDialog;
 
 // Import javax.swing classes individually to avoid loading unused classes
@@ -34,7 +35,8 @@ import com.davofredo.service.UndoService;
 /**
  * @author davof
  */
-public class MainForm extends JFrame implements OpenFileButtonListener, UndoButtonListener {
+public class MainForm extends JFrame implements OpenFileButtonListener, UndoButtonListener,
+        com.davofredo.csveditor.ui.toolbar.event.RedoButtonListener {
     private static final String APP_NAME = "CSV Editor";
 
     private MainToolBar toolBar;
@@ -96,6 +98,7 @@ public class MainForm extends JFrame implements OpenFileButtonListener, UndoButt
         eventGateway = new EventGatewayImpl();
         eventGateway.addEventListener(this, OpenFileButtonListener.class);
         eventGateway.addEventListener(this, UndoButtonListener.class);
+        eventGateway.addEventListener(this, RedoButtonListener.class);
     }
 
     public void onOpenFileButtonClicked() {
@@ -123,6 +126,15 @@ public class MainForm extends JFrame implements OpenFileButtonListener, UndoButt
             // implemented yet
         } else {
             Toolkit.getDefaultToolkit().beep(); // beep if empty
+        }
+    }
+
+    public void onRedoButtonClicked() {
+        var cmd = UndoService.getInstance().redo();
+        if (cmd != null) {
+            populateDataTable(false);
+        } else {
+            Toolkit.getDefaultToolkit().beep();
         }
     }
 

@@ -7,6 +7,7 @@ import java.util.Stack;
 public class UndoService {
     private static UndoService instance;
     private final Stack<EditCommand> undoStack = new Stack<>();
+    private final Stack<EditCommand> redoStack = new Stack<>();
     private final int MAX_HISTORY = 50;
 
     private UndoService() {
@@ -24,10 +25,15 @@ public class UndoService {
             undoStack.remove(0); // Remove oldest
         }
         undoStack.push(command);
+        redoStack.clear(); // Clear redo stack on new edit
     }
 
     public boolean canUndo() {
         return !undoStack.isEmpty();
+    }
+
+    public boolean canRedo() {
+        return !redoStack.isEmpty();
     }
 
     public EditCommand undo() {
@@ -41,6 +47,24 @@ public class UndoService {
                 cmd.getColumnName(),
                 cmd.getRowId(),
                 cmd.getOldValue());
+
+        redoStack.push(cmd);
+        return cmd;
+    }
+
+    public EditCommand redo() {
+        if (redoStack.isEmpty())
+            return null;
+
+        EditCommand cmd = redoStack.pop();
+        // Re-apply DB change
+        DatabaseService.getInstance().updateCell(
+                cmd.getTableName(),
+                cmd.getColumnName(),
+                cmd.getRowId(),
+                cmd.getNewValue());
+
+        undoStack.push(cmd);
         return cmd;
     }
 }

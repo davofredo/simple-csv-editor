@@ -4,9 +4,11 @@ import com.davofredo.event.EventGateway;
 import com.davofredo.csveditor.ui.toolbar.event.OpenFileButtonListener;
 import com.davofredo.csveditor.ui.toolbar.event.UndoButtonListener;
 import com.davofredo.csveditor.ui.toolbar.event.RedoButtonListener;
+import com.davofredo.csveditor.ui.toolbar.event.SaveButtonListener;
 import com.davofredo.ui.util.IconUtils;
 
-import javax.swing.*;
+import javax.swing.JToolBar;
+import javax.swing.JButton;
 
 public class MainToolBar extends JToolBar {
     private JButton btnOpenFile;
@@ -52,12 +54,9 @@ public class MainToolBar extends JToolBar {
     }
 
     private void postSaveButtonClicked() {
-        /*
-         * this.eventGateway
-         * .getEventListeners(SaveButtonListener.class)
-         * .forEach(SaveButtonListener::onSaveButtonClicked);
-         */
-        System.err.println("Save action not implemented yet");
+        this.eventGateway
+                .getEventListeners(SaveButtonListener.class)
+                .forEach(SaveButtonListener::onSaveButtonClicked);
     }
 
     private void postOpenFileButtonClicked() {
